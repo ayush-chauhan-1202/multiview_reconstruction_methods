@@ -62,6 +62,10 @@ flowchart LR
 
 ## What the results look like
 
+<img src="docs/figures/sipper-source-photo.jpg" alt="Original capture photograph of the black Sipper bottle with white markings" width="280">
+
+*The actual Sipper bottle in one of the input photographs.*
+
 ![Four Sipper meshes rendered with gray shading from two matched viewpoints](docs/figures/sipper-geometry-selected.png)
 
 The gray renders use approximately aligned meshes and matched viewpoints so the silhouette and surface are easy to compare. The [color comparison](docs/figures/sipper-appearance-selected.png) shows how the textures and vertex colors look on those surfaces.
