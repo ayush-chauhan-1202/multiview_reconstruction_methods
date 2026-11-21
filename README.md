@@ -4,6 +4,10 @@ How do overlapping photographs become a 3D surface? This study compares four app
 
 ## From photographs to a surface
 
+![Three camera orbits around a bottle, with adjacent viewpoints aimed inward](docs/figures/notebook-camera-orbits.png)
+
+*Redrawn from the notebook sketch. Move around the bottle at each height and keep neighboring views overlapping.*
+
 Photographs taken around an object provide overlapping views of its features. Higher viewpoints reveal the lid and shoulder, while lower viewpoints reveal more of the wall and base rim. The reconstruction first needs a camera model for each view. **Intrinsics** describe how the lens projects onto the image. **Extrinsics** describe where the camera was and which way it pointed. With these parameters, a method can triangulate a point from multiple observations or place a pixel with known depth in 3D.
 
 ```mermaid
@@ -33,17 +37,28 @@ flowchart LR
 
 ### COLMAP + OpenMVS — Match features and triangulate
 
-COLMAP finds corresponding features in overlapping photos. It triangulates those matches into a sparse 3D point cloud and jointly refines the cameras and points through **bundle adjustment**. OpenMVS uses the recovered cameras to estimate depth across more pixels, fuses those depths into a dense cloud, builds a mesh, and projects photo colors into a texture atlas. Clear features help establish cameras and depth. Smooth walls and reflections that change with the viewpoint make matching harder.
+**Structure from motion (SfM).** COLMAP detects local features and describes the image patch around each one. It matches descriptors across views, then uses geometric verification to reject matches that disagree with the relative camera geometry. Multiple observations of the same feature form a track. Triangulation finds the 3D point that best agrees with the viewing rays, and bundle adjustment jointly refines the cameras and points by minimizing reprojection error. [COLMAP tutorial](https://colmap.github.io/tutorial)
+
+**Multi-view stereo (MVS).** With the camera geometry established, OpenMVS estimates depth over many more pixels. A candidate depth places a pixel in 3D, where it can be projected into neighboring views to check whether the surrounding patches agree. Consistent depth estimates are fused into a dense cloud. OpenMVS builds a triangle surface and projects colors from suitable views into a texture atlas. On the Sipper, the dark wall offers few distinct patches, and reflections shift as the camera moves. Both make stereo correspondence harder. [OpenMVS workflow](https://github.com/cdcseacave/openMVS/wiki/Usage)
 
 ### VGGT + TSDF — Predict depth and fuse it
 
-VGGT uses attention within and across the photos to predict cameras, depth, and confidence. A **truncated signed distance field (TSDF)** combines the predicted depths on a 3D grid. Each view contributes an estimate of how far a voxel is from the nearby surface and on which side it lies. Where the views agree, the combined field crosses zero consistently. That zero crossing becomes a triangle mesh, and the source photos supply its texture.
+**Learned multi-view geometry.** VGGT represents the images as tokens and alternates attention within individual views and across the image set. Its camera head predicts the camera parameters, while its depth head estimates per-pixel depth and confidence. The resulting depth maps describe the visible surface from each camera. Using predicted intrinsics and poses, the same depth pixels can also be placed in a common 3D frame. [VGGT paper](https://openaccess.thecvf.com/content/CVPR2025/papers/Wang_VGGT_Visual_Geometry_Grounded_Transformer_CVPR_2025_paper.pdf)
+
+**Volumetric fusion.** To update a voxel, a truncated signed distance field (TSDF) projects it into a depth map and compares its depth with the observed depth at that pixel. The difference is signed according to which side of the observation the voxel lies on. Nearby measurements accumulate across views, with the truncation band limiting the influence of distant observations. Where views place the bottle wall at similar depths, their measurements support a common zero crossing. Marching cubes turns that crossing into triangles, and photo projection adds the texture. [Volumetric fusion paper](https://graphics.stanford.edu/papers/volrange/paper_1_level/gamma-corrected/paper.html)
 
 ### COLMAP + 3DGS and VGGT + 3DGS — Fit a scene that can be rendered
 
-Both methods start with camera estimates and seed points. COLMAP triangulates its seeds from image matches. VGGT supplies seeds by unprojecting predicted depths. **3D Gaussian Splatting (3DGS)** represents the scene with overlapping, translucent ellipsoids. A trainer renders the Gaussians from the input viewpoints and adjusts their positions, shapes, opacity, and color to match the photos.
+**Two ways to initialize the same representation.**
 
-To produce a GLB, the comparison extracts a surface at a chosen level in the Gaussian opacity field and colors its vertices. Several Gaussians can blend into a convincing bottle wall in a rendered image even when the extracted surface has holes. Lowering the opacity cutoff can fill some gaps while also including stray geometry.
+| Method | Cameras and initial Gaussian centers |
+|---|---|
+| COLMAP + 3DGS | Camera poses come from bundle-adjusted SfM. Centers start at 3D points triangulated from tracks. |
+| VGGT + 3DGS | Camera poses come from VGGT. Centers start at 3D points unprojected from confident depth pixels inside the object masks. |
+
+**Differentiable splatting.** Each 3D Gaussian has a center, oriented extent, opacity, and color coefficients. The renderer projects it to an elliptical footprint on the image, then blends these footprints in depth order. Because the renderer is differentiable, errors between rendered and source photos can update the Gaussian parameters. The two approaches therefore share the same visual fitting principle even though their starting geometry comes from different evidence. [Original 3DGS paper](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/) · [Brush](https://github.com/ArthurBrussee/brush)
+
+**Surface extraction.** For the common GLB output, the comparison samples the accumulated opacity of nearby Gaussians on a 3D grid. Marching cubes extracts the surface where opacity reaches the chosen threshold, and base Gaussian colors are transferred to vertices. Image rendering composites opacity along a ray, so a group of translucent Gaussians can cover the bottle wall in the image while individual locations in 3D fall below the mesh threshold. That helps explain why the splat renders look more complete than the extracted meshes. [Mesh extractor](extract_splat_mesh.py)
 
 ## What the results look like
 
