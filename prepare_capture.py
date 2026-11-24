@@ -15,7 +15,6 @@ METHODS = (
     "vggt-tsdf",
     "colmap-3dgs",
     "vggt-3dgs",
-    "anysplat",
 )
 
 

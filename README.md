@@ -2,6 +2,8 @@
 
 How do overlapping photographs become a 3D surface? This study compares four approaches using the same photo capture of a Sipper bottle. Each approach ends in a **colored triangle mesh (GLB)**. The bottle’s cylindrical wall, printed markings, and projecting lid handle make it easy to spot rough surfaces, gaps, and lost details.
 
+To run the four pipelines on your own photos, follow the [reconstruction quickstart](docs/quickstart.md).
+
 ## From photographs to a surface
 
 ![Three camera orbits around a bottle, with adjacent viewpoints aimed inward](docs/figures/notebook-camera-orbits.png)
@@ -70,12 +72,12 @@ flowchart LR
 
 The gray renders use approximately aligned meshes and matched viewpoints so the silhouette and surface are easy to compare. The [color comparison](docs/figures/sipper-appearance-selected.png) shows how the textures and vertex colors look on those surfaces.
 
-| Technique | What stands out | Mesh |
-|---|---|---|
-| **COLMAP + OpenMVS** | The bottle is recognizable and mostly continuous. The wall is lumpy and the cap is coarse. | [GLB](results/first-capture/colmap-openmvs/mesh.glb) |
-| **VGGT + TSDF** | The smoothest, most continuous wall and the most consistent silhouette. Some roughness remains around the cap and base. | [GLB](results/first-capture/vggt-tsdf/mesh.glb) |
-| **COLMAP + 3DGS** | Much of the wall is intact, with vertical ridges and a piece of tabletop attached to the base. | [GLB](results/first-capture/colmap-3dgs/mesh.glb) |
-| **VGGT + 3DGS** | The selected 0.50-opacity mesh shows a recognizable bottle with gaps in the lower wall and excess geometry around the shoulder. | [GLB](results/first-capture/vggt-3dgs-unpadded/mesh-level-0.5.glb) |
+| Technique | What stands out |
+|---|---|
+| **COLMAP + OpenMVS** | The bottle is recognizable and mostly continuous. The wall is lumpy and the cap is coarse. |
+| **VGGT + TSDF** | The smoothest, most continuous wall and the most consistent silhouette. Some roughness remains around the cap and base. |
+| **COLMAP + 3DGS** | Much of the wall is intact, with vertical ridges and a piece of tabletop attached to the base. |
+| **VGGT + 3DGS** | The selected 0.50-opacity mesh shows a recognizable bottle with gaps in the lower wall and excess geometry around the shoulder. |
 
 The [splat-to-mesh comparison](docs/figures/sipper-splats-vs-mesh.png) shows why the output format matters. The VGGT splats render a nearly continuous wall with visible printed markings, while the earlier 0.65-opacity mesh in that figure breaks apart in the same areas. The [opacity sweep](docs/figures/sipper-opacity-sweep.png) shows how the selected 0.50 mesh trades some of those gaps for additional surface clutter.
 

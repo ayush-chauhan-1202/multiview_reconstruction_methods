@@ -1,0 +1,7 @@
+numpy>=1.26,<2
+open3d>=0.19,<0.21
+Pillow>=10
+plyfile>=1
+scikit-image>=0.24
+scipy>=1.13
+trimesh>=4.5,<6
